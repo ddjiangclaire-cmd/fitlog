@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>健身日志</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0a;
+    color: #f0ede8;
+    font-family: 'Georgia', 'Noto Serif SC', serif;
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  button { cursor: pointer; font-family: inherit; }
+
+  /* Screens */
+  .screen { display: none; padding-bottom: 100px; }
+  .screen.active { display: block; }
+
+  .page-header { padding: 52px 28px 24px; }
+  .label-small { font-size: 11px; letter-spacing: 4px; color: #b8a882; text-transform: uppercase; margin-bottom: 8px; }
+  .page-title { font-size: 26px; font-weight: 700; line-height: 1.2; }
+  .page-sub { font-size: 12px; color: #7a6f5e; margin-top: 8px; }
+
+  /* Stats bar */
+  .stats-bar { display: flex; gap: 1px; margin: 0 28px 28px; border-radius: 12px; overflow: hidden; }
+  .stat-box { flex: 1; background: #161410; padding: 16px 12px; text-align: center; }
+  .stat-value { font-size: 22px; font-weight: 700; color: #d4a843; }
+  .stat-label { font-size: 10px; color: #7a6f5e; margin-top: 2px; }
+
+  /* Buttons */
+  .btn-primary {
+    width: 100%; padding: 18px; background: #d4a843;
+    border: none; border-radius: 14px; color: #0a0a0a;
+    font-size: 16px; font-weight: 700; letter-spacing: 2px;
+    box-shadow: 0 8px 32px rgba(212,168,67,0.3);
+  }
+  .btn-primary:disabled { background: #2a2418; color: #5a4f3e; box-shadow: none; }
+  .btn-ghost { background: transparent; border: 1px solid #2a2418; border-radius: 10px; color: #b8a882; padding: 10px 14px; font-size: 13px; }
+  .btn-back { background: #1a1610; border: none; color: #b8a882; padding: 8px 14px; border-radius: 8px; font-size: 13px; }
+
+  /* Cards */
+  .card { background: #111008; border-radius: 14px; border: 1px solid #1e1a12; overflow: hidden; }
+  .card-body { padding: 16px; }
+
+  /* Record item */
+  .record-item { display: flex; align-items: center; gap: 14px; cursor: pointer; }
+  .record-thumb { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+  .record-thumb-placeholder { width: 52px; height: 52px; border-radius: 8px; background: #1a1610; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .record-title { font-size: 15px; font-weight: 600; }
+  .record-meta { font-size: 12px; color: #7a6f5e; margin-top: 3px; }
+  .record-arrow { font-size: 20px; color: #5a4f3e; margin-left: auto; }
+
+  /* Photo area */
+  .photo-upload-btn {
+    width: 100%; height: 140px; background: #111008;
+    border: 2px dashed #2a2418; border-radius: 14px; color: #7a6f5e;
+    font-size: 13px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+  }
+  .photo-preview { position: relative; }
+  .photo-preview img { width: 100%; height: 200px; object-fit: cover; border-radius: 14px; display: block; }
+  .photo-remove { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); border: none; color: #fff; width: 30px; height: 30px; border-radius: 15px; font-size: 14px; }
+
+  /* Category grid */
+  .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cat-btn { padding: 14px 10px; border-radius: 12px; background: #111008; border: 1px solid #2a2418; color: #b8a882; font-size: 14px; font-weight: 600; }
+  .cat-btn.selected { background: #d4a843; border: none; color: #0a0a0a; }
+
+  /* Set form */
+  .set-form { background: #161410; border-radius: 14px; padding: 16px; border: 1px solid #2a2418; }
+  .set-form select, .set-form input[type=text], .set-form input[type=number] {
+    width: 100%; padding: 10px 12px; background: #0a0a0a; border: 1px solid #2a2418;
+    border-radius: 8px; color: #f0ede8; font-family: inherit; font-size: 14px; margin-bottom: 10px;
+  }
+  .set-form select option { background: #0a0a0a; }
+  .set-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .set-inputs input { text-align: center; font-size: 15px; margin-bottom: 0; }
+  .set-input-label { font-size: 10px; color: #7a6f5e; margin-bottom: 4px; }
+  .set-form-btns { display: flex; gap: 8px; }
+  .set-form-btns .btn-cancel { flex: 1; padding: 10px; background: transparent; border: 1px solid #2a2418; border-radius: 8px; color: #7a6f5e; }
+  .set-form-btns .btn-confirm { flex: 2; padding: 10px; background: #d4a843; border: none; border-radius: 8px; color: #0a0a0a; font-weight: 700; }
+
+  /* Set item */
+  .set-item { background: #111008; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; border: 1px solid #1e1a12; display: flex; justify-content: space-between; align-items: center; }
+  .set-item-name { font-size: 14px; font-weight: 600; }
+  .set-item-detail { font-size: 12px; color: #7a6f5e; margin-top: 4px; }
+  .set-item-del { background: transparent; border: none; color: #5a4f3e; font-size: 20px; padding: 0 4px; }
+
+  /* Add set btn */
+  .btn-add-set { width: 100%; padding: 14px; background: transparent; border: 2px dashed #2a2418; border-radius: 12px; color: #7a6f5e; font-size: 14px; }
+
+  /* Textarea */
+  textarea { width: 100%; padding: 12px 14px; background: #111008; border: 1px solid #2a2418; border-radius: 12px; color: #f0ede8; font-family: inherit; font-size: 14px; resize: none; height: 80px; }
+
+  /* Detail stats */
+  .detail-stats { display: flex; gap: 8px; margin-bottom: 24px; }
+  .detail-stat { flex: 1; background: #111008; border-radius: 10px; padding: 12px 8px; text-align: center; }
+  .detail-stat-val { font-size: 20px; font-weight: 700; color: #d4a843; }
+  .detail-stat-lbl { font-size: 10px; color: #7a6f5e; margin-top: 2px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 420px;
+    background: rgba(10,10,10,0.96); border-top: 1px solid #1e1a12;
+    display: flex; z-index: 100;
+  }
+  .nav-btn { flex: 1; padding: 14px 0; background: transparent; border: none; color: #5a4f3e; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; letter-spacing: 1px; }
+  .nav-btn.active { color: #d4a843; }
+  .nav-btn .nav-icon { font-size: 18px; }
+  .nav-btn-center { flex: 1; margin: 8px 16px; background: #d4a843; border: none; border-radius: 12px; color: #0a0a0a; font-weight: 700; font-size: 10px; letter-spacing: 1px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .nav-btn-center .nav-icon { font-size: 20px; }
+
+  .section-label { font-size: 11px; letter-spacing: 3px; color: #7a6f5e; text-transform: uppercase; margin-bottom: 12px; }
+  .content-pad { padding: 0 28px; }
+  .mb16 { margin-bottom: 16px; }
+  .mb24 { margin-bottom: 24px; }
+  .mb32 { margin-bottom: 32px; }
+  .empty-state { text-align: center; color: #5a4f3e; padding: 60px 0; font-size: 14px; }
+
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+
+  .history-photo { width: 100%; height: 140px; object-fit: cover; display: block; }
+</style>
+</head>
+<body>
+
+<!-- HOME SCREEN -->
+<div id="screen-home" class="screen active">
+  <div class="page-header">
+    <div class="label-small">健身日志</div>
+    <div class="page-title">今天，<br>你练了吗？</div>
+    <div class="page-sub" id="home-date"></div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-box"><div class="stat-value" id="stat-total">0</div><div class="stat-label">总训练 次</div></div>
+    <div class="stat-box"><div class="stat-value" id="stat-month">0</div><div class="stat-label">本月 次</div></div>
+    <div class="stat-box"><div class="stat-value" id="stat-sets">0</div><div class="stat-label">总组数 组</div></div>
+  </div>
+
+  <div class="content-pad mb24">
+    <button class="btn-primary" onclick="goTo('log')">＋ 记录今天的训练</button>
+  </div>
+
+  <div class="content-pad">
+    <div class="section-label" id="recent-label" style="display:none">最近记录</div>
+    <div id="recent-list"></div>
+    <button id="view-all-btn" class="btn-ghost" style="width:100%;display:none" onclick="goTo('history')"></button>
+  </div>
+</div>
+
+<!-- LOG SCREEN -->
+<div id="screen-log" class="screen">
+  <div class="page-header">
+    <div class="header-row">
+      <div>
+        <div class="label-small">新训练</div>
+        <div class="page-title">记录今天 💪</div>
+        <div class="page-sub" id="log-date"></div>
+      </div>
+      <button class="btn-back" onclick="goTo('home')">✕</button>
+    </div>
+  </div>
+
+  <div class="content-pad">
+
+    <!-- Photo -->
+    <div class="mb24">
+      <div class="section-label">📸 训练照片</div>
+      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+      <div id="photo-empty">
+        <button class="photo-upload-btn" onclick="document.getElementById('photo-input').click()">
+          <span style="font-size:32px">📷</span>
+          <span>拍照 / 选择照片</span>
+        </button>
+      </div>
+      <div id="photo-preview" class="photo-preview" style="display:none">
+        <img id="photo-img" src="" alt="训练照片">
+        <button class="photo-remove" onclick="removePhoto()">✕</button>
+      </div>
+    </div>
+
+    <!-- Category -->
+    <div class="mb24">
+      <div class="section-label">🏷 训练部位</div>
+      <div class="cat-grid">
+        <button class="cat-btn" onclick="selectCat(this,'胸 / 推')">🫁 胸 / 推</button>
+        <button class="cat-btn" onclick="selectCat(this,'背 / 拉')">🔙 背 / 拉</button>
+        <button class="cat-btn" onclick="selectCat(this,'腿')">🦵 腿</button>
+        <button class="cat-btn" onclick="selectCat(this,'肩 / 手臂')">💪 肩 / 手臂</button>
+      </div>
+    </div>
+
+    <!-- Sets -->
+    <div class="mb24">
+      <div class="section-label">📋 动作记录</div>
+      <div id="sets-list"></div>
+      <div id="set-form" style="display:none" class="set-form">
+        <div id="exercise-select-wrap"></div>
+        <div class="set-inputs">
+          <div><div class="set-input-label">组数</div><input type="number" id="inp-sets" placeholder="3" min="1"></div>
+          <div><div class="set-input-label">每组个数</div><input type="number" id="inp-reps" placeholder="10" min="1"></div>
+          <div><div class="set-input-label">重量(kg)</div><input type="number" id="inp-weight" placeholder="可选" min="0"></div>
+        </div>
+        <div class="set-form-btns">
+          <button class="btn-cancel" onclick="closeSetForm()">取消</button>
+          <button class="btn-confirm" onclick="confirmSet()">确认添加</button>
+        </div>
+      </div>
+      <button id="add-set-btn" class="btn-add-set" onclick="openSetForm()">＋ 添加动作</button>
+    </div>
+
+    <!-- Note -->
+    <div class="mb32">
+      <div class="section-label">✏️ 备注</div>
+      <textarea id="log-note" placeholder="今天感觉怎么样？"></textarea>
+    </div>
+
+    <button class="btn-primary" id="save-btn" onclick="saveWorkout()" disabled>💾 保存训练记录</button>
+    <br><br>
+  </div>
+</div>
+
+<!-- HISTORY SCREEN -->
+<div id="screen-history" class="screen">
+  <div class="page-header">
+    <div class="header-row">
+      <div>
+        <div class="label-small">训练历史</div>
+        <div class="page-title">所有记录</div>
+      </div>
+      <button class="btn-back" onclick="goTo('home')">← 返回</button>
+    </div>
+  </div>
+  <div class="content-pad" id="history-list"></div>
+</div>
+
+<!-- DETAIL SCREEN -->
+<div id="screen-detail" class="screen">
+  <div id="detail-photo-wrap"></div>
+  <div class="content-pad" style="padding-top:28px">
+    <div class="header-row mb24" style="margin-bottom:24px">
+      <div>
+        <div class="page-title" id="detail-title"></div>
+        <div class="page-sub" id="detail-date"></div>
+      </div>
+      <button class="btn-back" onclick="goTo('history')">← 返回</button>
+    </div>
+    <div class="detail-stats" id="detail-stats"></div>
+    <div class="section-label">动作明细</div>
+    <div id="detail-sets"></div>
+    <div id="detail-note-wrap" style="margin-top:20px;display:none">
+      <div class="card"><div class="card-body">
+        <div style="font-size:11px;color:#7a6f5e;margin-bottom:8px">备注</div>
+        <div id="detail-note" style="font-size:14px;color:#b8a882"></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="goTo('home')">
+    <span class="nav-icon">🏠</span><span>主页</span>
+  </button>
+  <button class="nav-btn-center" onclick="goTo('log')">
+    <span class="nav-icon">＋</span><span>记录</span>
+  </button>
+  <button class="nav-btn" id="nav-history" onclick="goTo('history')">
+    <span class="nav-icon">📖</span><span>历史</span>
+  </button>
+</div>
+
+<script>
+const EXERCISES = {
+  '胸 / 推': ['卧推','上斜卧推','下斜卧推','哑铃飞鸟','俯卧撑','龙门架夹胸'],
+  '背 / 拉': ['引体向上','划船','高位下拉','硬拉','坐姿绳索划船'],
+  '腿': ['深蹲','腿举','罗马尼亚硬拉','腿弯举','腿伸展','弓步蹲'],
+  '肩 / 手臂': ['哑铃推肩','侧平举','弯举','锤式弯举','三头下压','颈后臂屈伸'],
+};
+const EMOJI = {'胸 / 推':'🫁','背 / 拉':'🔙','腿':'🦵','肩 / 手臂':'💪'};
+
+let records = JSON.parse(localStorage.getItem('fitlog') || '[]');
+let currentPhoto = null;
+let currentCat = null;
+let currentSets = [];
+let currentScreen = 'home';
+
+function save() { localStorage.setItem('fitlog', JSON.stringify(records)); }
+
+function today() {
+  return new Date().toLocaleDateString('zh-CN', {year:'numeric',month:'long',day:'numeric',weekday:'long'});
+}
+function shortDate(d) {
+  return new Date(d).toLocaleDateString('zh-CN', {month:'short',day:'numeric'});
+}
+
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  document.getElementById('bottom-nav').style.display = screen === 'log' ? 'none' : 'flex';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (screen === 'home') document.getElementById('nav-home').classList.add('active');
+  if (screen === 'history') document.getElementById('nav-history').classList.add('active');
+  currentScreen = screen;
+  if (screen === 'home') renderHome();
+  if (screen === 'history') renderHistory();
+  if (screen === 'log') initLog();
+  window.scrollTo(0,0);
+}
+
+function renderHome() {
+  document.getElementById('home-date').textContent = today();
+  const month = new Date().getMonth();
+  document.getElementById('stat-total').textContent = records.length;
+  document.getElementById('stat-month').textContent = records.filter(r => new Date(r.ts).getMonth() === month).length;
+  document.getElementById('stat-sets').textContent = records.reduce((a,r) => a + r.totalSets, 0);
+
+  const list = document.getElementById('recent-list');
+  const label = document.getElementById('recent-label');
+  const allBtn = document.getElementById('view-all-btn');
+  list.innerHTML = '';
+  if (records.length === 0) { label.style.display='none'; allBtn.style.display='none'; return; }
+  label.style.display = 'block';
+  records.slice(0,3).forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'card mb16';
+    div.style.marginBottom = '10px';
+    div.innerHTML = `<div class="card-body record-item" onclick="viewDetail(${r.ts})">
+      ${r.photo ? `<img class="record-thumb" src="${r.photo}">` : `<div class="record-thumb-placeholder">${EMOJI[r.category]||'🏋️'}</div>`}
+      <div>
+        <div class="record-title">${r.category||'综合训练'}</div>
+        <div class="record-meta">${shortDate(r.ts)} · ${r.totalSets} 组 · ${r.sets.length} 动作</div>
+      </div>
+      <div class="record-arrow">›</div>
+    </div>`;
+    list.appendChild(div);
+  });
+  if (records.length > 3) {
+    allBtn.style.display = 'block';
+    allBtn.textContent = `查看全部 ${records.length} 条记录 →`;
+  } else { allBtn.style.display = 'none'; }
+}
+
+function initLog() {
+  currentPhoto = null; currentCat = null; currentSets = [];
+  document.getElementById('log-date').textContent = today();
+  document.getElementById('photo-input').value = '';
+  document.getElementById('photo-empty').style.display = 'block';
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('log-note').value = '';
+  document.getElementById('set-form').style.display = 'none';
+  document.getElementById('add-set-btn').style.display = 'block';
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  renderSets();
+  checkSaveBtn();
+}
+
+function handlePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentPhoto = ev.target.result;
+    document.getElementById('photo-img').src = currentPhoto;
+    document.getElementById('photo-empty').style.display = 'none';
+    document.getElementById('photo-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePhoto() {
+  currentPhoto = null;
+  document.getElementById('photo-input').value = '';
+  document.getElementById('photo-empty').style.display = 'block';
+  document.getElementById('photo-preview').style.display = 'none';
+}
+
+function selectCat(btn, cat) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  currentCat = cat;
+  checkSaveBtn();
+}
+
+function openSetForm() {
+  document.getElementById('set-form').style.display = 'block';
+  document.getElementById('add-set-btn').style.display = 'none';
+  const wrap = document.getElementById('exercise-select-wrap');
+  if (currentCat) {
+    wrap.innerHTML = `<select id="inp-exercise">${EXERCISES[currentCat].map(e=>`<option>${e}</option>`).join('')}</select>`;
+  } else {
+    wrap.innerHTML = `<input type="text" id="inp-exercise" placeholder="动作名称" style="margin-bottom:10px">`;
+  }
+  document.getElementById('inp-sets').value = '';
+  document.getElementById('inp-reps').value = '';
+  document.getElementById('inp-weight').value = '';
+}
+
+function closeSetForm() {
+  document.getElementById('set-form').style.display = 'none';
+  document.getElementById('add-set-btn').style.display = 'block';
+}
+
+function confirmSet() {
+  const ex = document.getElementById('inp-exercise').value.trim();
+  const sets = document.getElementById('inp-sets').value;
+  const reps = document.getElementById('inp-reps').value;
+  const weight = document.getElementById('inp-weight').value;
+  if (!ex || !sets || !reps) { alert('请填写动作、组数和个数'); return; }
+  currentSets.push({ exercise: ex, sets: parseInt(sets), reps: parseInt(reps), weight: weight || '' });
+  renderSets();
+  closeSetForm();
+  checkSaveBtn();
+}
+
+function deleteSet(i) {
+  currentSets.splice(i,1);
+  renderSets();
+  checkSaveBtn();
+}
+
+function renderSets() {
+  const list = document.getElementById('sets-list');
+  list.innerHTML = '';
+  currentSets.forEach((s,i) => {
+    const div = document.createElement('div');
+    div.className = 'set-item';
+    div.innerHTML = `<div>
+      <div class="set-item-name">${s.exercise}</div>
+      <div class="set-item-detail">${s.sets} 组 × ${s.reps} 个${s.weight ? ' · '+s.weight+' kg' : ''}</div>
+    </div>
+    <button class="set-item-del" onclick="deleteSet(${i})">×</button>`;
+    list.appendChild(div);
+  });
+}
+
+function checkSaveBtn() {
+  document.getElementById('save-btn').disabled = (currentSets.length === 0 && !currentCat);
+}
+
+function saveWorkout() {
+  const ts = Date.now();
+  const savedSets = [...currentSets];
+  const record = {
+    ts,
+    date: shortDate(ts),
+    fullDate: today(),
+    photo: currentPhoto,
+    category: currentCat,
+    sets: savedSets,
+    note: document.getElementById('log-note').value,
+    totalSets: savedSets.reduce((a,s) => a + s.sets, 0),
+    totalReps: savedSets.reduce((a,s) => a + s.reps * s.sets, 0),
+  };
+  records.unshift(record);
+  save();
+  // Reset state after saving
+  currentPhoto = null; currentCat = null; currentSets = [];
+  // Go to history directly without triggering initLog
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-history').classList.add('active');
+  document.getElementById('bottom-nav').style.display = 'flex';
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-history').classList.add('active');
+  renderHistory();
+  window.scrollTo(0,0);
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  if (records.length === 0) {
+    list.innerHTML = '<div class="empty-state">还没有记录，去训练吧！</div>';
+    return;
+  }
+  records.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.marginBottom = '12px';
+    div.style.cursor = 'pointer';
+    div.onclick = () => viewDetail(r.ts);
+    div.innerHTML = `
+      ${r.photo ? `<img class="history-photo" src="${r.photo}">` : ''}
+      <div class="card-body" style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:15px;font-weight:600">${EMOJI[r.category]||'🏋️'} ${r.category||'综合训练'}</div>
+          <div style="font-size:12px;color:#7a6f5e;margin-top:4px">${r.fullDate}</div>
+          <div style="font-size:12px;color:#b8a882;margin-top:4px">${r.sets.length} 动作 · ${r.totalSets} 组 · ${r.totalReps} 次</div>
+        </div>
+        <div style="font-size:22px;color:#5a4f3e">›</div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function viewDetail(ts) {
+  const r = records.find(x => x.ts === ts);
+  if (!r) return;
+  document.getElementById('detail-photo-wrap').innerHTML = r.photo
+    ? `<img src="${r.photo}" style="width:100%;height:260px;object-fit:cover;display:block">`
+    : '';
+  document.getElementById('detail-title').textContent = (EMOJI[r.category]||'🏋️') + ' ' + (r.category||'综合训练');
+  document.getElementById('detail-date').textContent = r.fullDate;
+  document.getElementById('detail-stats').innerHTML = [
+    ['动作', r.sets.length],['组数', r.totalSets],['次数', r.totalReps]
+  ].map(([l,v]) => `<div class="detail-stat"><div class="detail-stat-val">${v}</div><div class="detail-stat-lbl">${l}</div></div>`).join('');
+  const setsList = document.getElementById('detail-sets');
+  setsList.innerHTML = r.sets.map(s => `
+    <div class="set-item" style="margin-bottom:8px">
+      <div class="set-item-name">${s.exercise}</div>
+      <div style="font-size:13px;color:#b8a882">${s.sets}组×${s.reps}个${s.weight?' · '+s.weight+'kg':''}</div>
+    </div>`).join('');
+  const noteWrap = document.getElementById('detail-note-wrap');
+  if (r.note) {
+    noteWrap.style.display = 'block';
+    document.getElementById('detail-note').textContent = r.note;
+  } else { noteWrap.style.display = 'none'; }
+  goTo('detail');
+}
+
+// Override goTo for detail (no nav update needed for back button)
+const _goTo = goTo;
+
+// Init
+renderHome();
+document.getElementById('home-date').textContent = today();
+</script>
+</body>
+</html>
